@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 
 const WellnessScore = () => {
   const [sleep, setSleep] = useState('');
@@ -6,24 +9,17 @@ const WellnessScore = () => {
   const [water, setWater] = useState('');
   const [mood, setMood] = useState('');
   const [heartRate, setHeartRate] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [score, setScore] = useState(null);
+  const [scoreHistory, setScoreHistory] = useState([]);
 
   const calculateScore = () => {
-    // Sleep score (8 hours max, 0 min)
     const sleepScore = sleep >= 8 ? 100 : sleep >= 7 ? 80 : sleep >= 5 ? 60 : 0;
-
-    // Steps score (10,000 steps max, 0 min)
     const stepsScore = steps >= 10000 ? 100 : steps >= 7500 ? 80 : steps >= 5000 ? 60 : 0;
-
-    // Water intake score (100 oz max, 0 min)
     const waterScore = water >= 100 ? 100 : water >= 64 ? 70 : water >= 40 ? 50 : 0;
-
-    // Mood score (10 max, 0 min)
     const moodScore = mood >= 8 ? 100 : mood >= 7 ? 80 : mood >= 5 ? 60 : 0;
-
-    // Heart rate score (60 bpm max, 0 min)
     const heartRateScore = heartRate <= 75 ? 100 : heartRate <= 90 ? 80 : heartRate <= 100 ? 60 : 0;
 
-    // Apply weights (30% for sleep, 20% for steps, 20% for water, 15% for mood, 15% for heart rate)
     const finalScore =
       (sleepScore * 0.30) +
       (stepsScore * 0.20) +
@@ -31,14 +27,28 @@ const WellnessScore = () => {
       (moodScore * 0.15) +
       (heartRateScore * 0.15);
 
-    return finalScore.toFixed(2); // Return score rounded to 2 decimal places
+    return finalScore.toFixed(2);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const calculated = calculateScore();
+    setScore(calculated);
+    setSubmitted(true);
+
+    const timestamp = new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+
+    setScoreHistory(prev => [...prev, { date: timestamp, score: parseFloat(calculated) }]);
   };
 
   return (
     <div className="wellness-score">
       <h1 className="text-3xl font-bold text-center mb-4">Wellness Score</h1>
 
-      <div className="input-fields">
+      <form onSubmit={handleSubmit} className="input-fields">
         <div className="field">
           <label>Sleep (hours):</label>
           <input
@@ -86,11 +96,29 @@ const WellnessScore = () => {
             placeholder="Enter heart rate (bpm)"
           />
         </div>
-      </div>
+        <button type="submit">Calculate Wellness Score</button>
+      </form>
 
-      <div className="score-result">
-        <h2>Your Wellness Score: {calculateScore()}</h2>
-      </div>
+      {submitted && (
+        <div className="score-result">
+          <h2>Your Wellness Score: {score}</h2>
+        </div>
+      )}
+
+      {scoreHistory.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold text-center mb-2">Wellness Score Trend</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={scoreHistory}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis domain={[0, 100]} />
+              <Tooltip />
+              <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 };
